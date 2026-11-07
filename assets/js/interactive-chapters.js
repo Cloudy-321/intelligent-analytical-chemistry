@@ -463,7 +463,7 @@
         legend += '<line x1="416" x2="438" y1="16" y2="16" stroke="#7b8794" stroke-width="2.6" stroke-dasharray="5 4" /><text x="444" y="20" class="lab-axis-text">假设谱形</text>';
       }
 
-      var caption = '主仪器 A 与 12 个传递样品实测 B 的近红外光谱对比'
+      var caption = '主仪器 A 与 42 个传递样品实测 B 的近红外光谱对比'
         + (hypothesis ? '，虚线为假设' + pick(differences, selected).label + '时 B 应有的形状' : '')
         + '；峰位重合、峰宽相近，B 在 1900 nm 附近增益偏高。';
 
@@ -528,8 +528,10 @@
         ? feedbackBox(gates[2] ? 'success' : 'warning', gates[2] ? '迁移方法与差异结构一致' : '这个方法解决不了当前的差异', gates[2]
           ? 'DS 用少量传递样品在全部波长上学习一条映射，正好对应平滑的全局增益差异；若差异确属局部、且传递样品足够多，才轮到 PDS。'
           : acceptableMethod[state.method]
-            ? 'PDS 也能工作，但它在每个窗口单独拟合，需要更多传递样品；本案例只有 12 个样品，容易把噪声学成映射。'
-            : '斜率—偏差只修正预测值的尺度与截距，改变不了“不同波长被不同增益放大”这一事实；直接套用则把仪器差异整体算进浓度。')
+            ? 'PDS 适用于局部峰形 / 波长依赖差异；本案例是全局平滑差异，因此不应得到完整通过。'
+            : state.method
+              ? '斜率—偏差只修正预测值的尺度与截距，改变不了“不同波长被不同增益放大”这一事实；直接套用则把仪器差异整体算进浓度。'
+              : '还没有选择迁移方法。本案例的差异落在整条光谱的增益上，需要一条在全部波长上学习的映射。')
         : '';
 
       var assessment = state.checked
@@ -541,12 +543,12 @@
       root.innerHTML = '<section class="lab-shell lab-shell--ch14" aria-labelledby="ch14-lab-title">'
         + '<header class="lab-header"><div><p class="lab-eyebrow">互动案例 · 约 15 分钟 · 浏览器本地保存进度</p>'
         + '<h3 id="ch14-lab-title">任务十四：主仪器模型能直接部署到从仪器吗？</h3>'
-        + '<p>你是负责方法转移的分析人员。模型建在 A 上，下周要在 B 上报告 60 个新样品的浓度。请依次决定：量值链、差异结构、迁移方法、验证集合。</p></div>'
+        + '<p>你是负责方法转移的分析人员。模型建在 A 上，下周要在 B 上报告 70 个新样品的浓度。请依次决定：量值链、差异结构、迁移方法、验证集合。</p></div>'
         + '<div class="lab-progress" aria-label="已完成 ' + readyCount + ' / 4 个迁移决策">' + progressDots(readyCount, 4) + '<span>' + readyCount + ' / 4</span></div></header>'
         + '<div class="lab-brief"><strong>现场简报</strong><ul>'
         + '<li>A、B 为同型号近红外光谱仪，不同批次；A 上已有 PLS 浓度模型与完整验证记录。</li>'
-        + '<li>在 B 上重测了 12 个传递样品：峰位基本重合，峰宽变化不明显，B 的响应在 1900 nm 附近整体偏高，且随波长缓慢变化。</li>'
-        + '<li>现场只允许再测少量样品；监管方要的是 B 上“未来样品”的误差，而不是这 12 个样品拟合得多好。</li>'
+        + '<li>在 B 上重测了 42 个传递样品：峰位基本重合，峰宽变化不明显，B 的响应在 1900 nm 附近整体偏高，且随波长缓慢变化。</li>'
+        + '<li>现场只允许再测少量样品；监管方要的是 B 上“未来样品”的误差，而不是这 42 个样品拟合得多好。</li>'
         + '</ul></div>'
 
         + '<article class="lab-stage"><div class="lab-stage-number">1</div><div class="lab-stage-content">'
@@ -559,7 +561,7 @@
 
         + '<article class="lab-stage"><div class="lab-stage-number">2</div><div class="lab-stage-content">'
         + '<p class="lab-stage-kicker">诊断</p><h4>主从差异更像哪一种？</h4>'
-        + '<p>下图是 12 个传递样品的实测对比。选定一种描述后，灰色虚线会叠加该结构下 B 应有的形状，用来和实测曲线比对。</p>'
+        + '<p>下图是 42 个传递样品的实测对比。选定一种描述后，灰色虚线会叠加该结构下 B 应有的形状，用来和实测曲线比对。</p>'
         + '<div class="lab-option-grid">' + optionMarkup(differences, state.difference, 'ch14-difference', differenceStatus) + '</div>'
         + '<div class="lab-plot-wrap">' + plot(state.difference) + '<div class="lab-plot-note"><strong>' + labelOf(differences, state.difference) + '</strong><p>'
         + (state.difference ? pick(differences, state.difference).detail + (state.difference === answer.difference ? '' : ' —— 请把它和实测橙线比对：峰位、峰宽是否真的变了？')
@@ -570,7 +572,7 @@
 
         + '<article class="lab-stage"><div class="lab-stage-number">3</div><div class="lab-stage-content">'
         + '<p class="lab-stage-kicker">方法</p><h4>选择迁移方式</h4>'
-        + '<p>只有 12 个传递样品。你打算怎样把 A 的模型用到 B 上？</p>'
+        + '<p>只有 42 个传递样品。你打算怎样把 A 的模型用到 B 上？</p>'
         + '<div class="lab-option-grid">' + optionMarkup(methods, state.method, 'ch14-method', methodStatus) + '</div>'
         + methodFeedback
         + '</div></article>'

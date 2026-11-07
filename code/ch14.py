@@ -292,6 +292,39 @@ def regression_metrics(y_true: np.ndarray, y_pred: np.ndarray) -> dict[str, floa
     }
 
 
+SEGMENT_LABELS = ("low", "mid", "high")
+
+
+def residual_by_segment(
+    y_true: np.ndarray,
+    y_pred: np.ndarray,
+    labels: tuple[str, ...] = SEGMENT_LABELS,
+) -> list[dict[str, float | str | int]]:
+    """Split samples by reference concentration and report bias/error per segment.
+
+    A single RMSEP can hide a method that is accurate on average while biased at
+    the low or high concentration end, so the residual structure is reported per
+    segment instead of only as one aggregate number.
+    """
+    residual = y_pred - y_true
+    order = np.argsort(y_true, kind="stable")
+    segments = np.array_split(order, len(labels))
+    rows: list[dict[str, float | str | int]] = []
+    for label, index in zip(labels, segments):
+        if index.size == 0:
+            continue
+        part = residual[index]
+        rows.append(
+            {
+                "segment": label,
+                "n": int(index.size),
+                "mean_bias": float(np.mean(part)),
+                "rmsep": float(np.sqrt(np.mean(part**2))),
+            }
+        )
+    return rows
+
+
 REQUIRED_METADATA = {
     "sample_id",
     "batch_id",
@@ -539,6 +572,10 @@ def main() -> None:
         name: regression_metrics(test.y, prediction)
         for name, prediction in predictions.items()
     }
+    segment_metrics = {
+        name: residual_by_segment(test.y, prediction)
+        for name, prediction in predictions.items()
+    }
 
     save_figure(train.wavelengths, transfer, test.y, predictions)
 
@@ -577,6 +614,24 @@ def main() -> None:
         metric_rows,
     )
 
+    segment_rows = []
+    for name, segments in segment_metrics.items():
+        for segment in segments:
+            segment_rows.append(
+                [
+                    name,
+                    segment["segment"],
+                    segment["n"],
+                    f"{segment['mean_bias']:.6f}",
+                    f"{segment['rmsep']:.6f}",
+                ]
+            )
+    write_csv(
+        RESULTS / "residual_by_segment.csv",
+        ["method", "segment", "n", "mean_bias", "rmsep"],
+        segment_rows,
+    )
+
     manifest = make_metadata_manifest(train, transfer, test)
     (RESULTS / "metadata_manifest.json").write_text(
         json.dumps(manifest, ensure_ascii=False, indent=2),
@@ -596,6 +651,7 @@ def main() -> None:
         "pds_ridge": 0.35,
         "slope_bias": {"slope": slope, "intercept": intercept},
         "metrics": metrics,
+        "residual_by_segment": segment_metrics,
         "metadata_validation_error_count": len(manifest["validation_errors"]),
     }
     (RESULTS / "summary.json").write_text(
@@ -613,6 +669,15 @@ def main() -> None:
             f"{name:18s} RMSEP={metric['rmsep']:.4f} "
             f"MAE={metric['mae']:.4f} R2={metric['r2']:.4f}"
         )
+
+    print("Residual structure by concentration segment (bias / RMSEP):")
+    for name, segments in segment_metrics.items():
+        detail = "  ".join(
+            f"{segment['segment']}={segment['mean_bias']:+.4f}/{segment['rmsep']:.4f}"
+            for segment in segments
+        )
+        print(f"  {name:18s} {detail}")
+
     print(f"Metadata validation errors: {summary['metadata_validation_error_count']}")
     print(f"Saved: {RESULTS / 'ch14_transfer_performance.png'}")
 
