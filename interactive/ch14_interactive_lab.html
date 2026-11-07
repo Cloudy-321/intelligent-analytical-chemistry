@@ -1,0 +1,337 @@
+<!doctype html>
+<html lang="zh-CN">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>第14章｜校准迁移决策实验室</title>
+  <style>
+    :root {
+      --ink: #173047;
+      --muted: #587083;
+      --paper: #f8fafb;
+      --card: #ffffff;
+      --teal: #2f7f86;
+      --teal-soft: #e6f4f3;
+      --orange: #d56643;
+      --orange-soft: #fff0e9;
+      --line: #d4dee5;
+      --ok: #20755f;
+      --warn: #a5482d;
+    }
+    * { box-sizing: border-box; }
+    body {
+      margin: 0;
+      font-family: "Microsoft YaHei", "Noto Sans CJK SC", sans-serif;
+      color: var(--ink);
+      background: var(--paper);
+      line-height: 1.6;
+    }
+    main { max-width: 1180px; margin: 0 auto; padding: 28px 20px 48px; }
+    header { margin-bottom: 22px; }
+    .kicker {
+      color: var(--teal);
+      font-size: 13px;
+      font-weight: 700;
+      letter-spacing: .08em;
+    }
+    h1 { margin: 8px 0 6px; font-size: clamp(25px, 3vw, 38px); line-height: 1.25; }
+    .subtitle { color: var(--muted); max-width: 900px; margin: 0; }
+    .layout { display: grid; grid-template-columns: 1.02fr 1.3fr; gap: 20px; }
+    .card {
+      background: var(--card);
+      border: 1px solid var(--line);
+      border-radius: 16px;
+      padding: 20px;
+      box-shadow: 0 8px 28px rgba(25, 54, 75, .06);
+    }
+    .card h2 { margin: 0 0 14px; font-size: 18px; }
+    fieldset { border: 0; padding: 0; margin: 0 0 18px; }
+    legend { font-weight: 700; margin-bottom: 8px; }
+    label.choice {
+      display: flex;
+      gap: 10px;
+      align-items: flex-start;
+      padding: 10px 12px;
+      border: 1px solid var(--line);
+      border-radius: 10px;
+      margin: 8px 0;
+      cursor: pointer;
+    }
+    label.choice:has(input:checked) {
+      border-color: var(--teal);
+      background: var(--teal-soft);
+    }
+    input[type="radio"], input[type="checkbox"] { margin-top: 5px; accent-color: var(--teal); }
+    .choice strong { display: block; }
+    .choice small { color: var(--muted); }
+    .actions { display: flex; gap: 10px; flex-wrap: wrap; }
+    button {
+      border: 0;
+      border-radius: 999px;
+      padding: 11px 20px;
+      font: inherit;
+      font-weight: 700;
+      cursor: pointer;
+    }
+    button.primary { color: #fff; background: var(--teal); }
+    button.secondary { color: var(--teal); background: var(--teal-soft); }
+    button:focus-visible, input:focus-visible { outline: 3px solid #e7aa8f; outline-offset: 2px; }
+    canvas {
+      width: 100%;
+      height: 290px;
+      background: #0f2234;
+      border-radius: 14px;
+      display: block;
+    }
+    .legend { display: flex; gap: 18px; margin: 10px 0; font-size: 13px; color: var(--muted); }
+    .swatch { width: 20px; height: 4px; border-radius: 999px; display: inline-block; vertical-align: middle; margin-right: 6px; }
+    .result {
+      margin-top: 18px;
+      padding: 16px;
+      border-radius: 12px;
+      border: 1px solid var(--line);
+      background: #fbfcfd;
+    }
+    .result.good { background: #ecf7f2; border-color: #9bcdbd; }
+    .result.warn { background: var(--orange-soft); border-color: #e4aa93; }
+    .score { font-size: 31px; font-weight: 800; line-height: 1; }
+    .checks { display: grid; gap: 7px; margin-top: 12px; }
+    .check { display: flex; gap: 8px; align-items: flex-start; font-size: 14px; }
+    .check b { min-width: 20px; }
+    .ledger {
+      margin-top: 16px;
+      padding: 13px 15px;
+      border-left: 4px solid var(--orange);
+      background: #fffaf7;
+      font-size: 14px;
+    }
+    .hint { color: var(--muted); font-size: 13px; }
+    @media (max-width: 850px) {
+      .layout { grid-template-columns: 1fr; }
+      main { padding: 20px 12px 38px; }
+    }
+  </style>
+</head>
+<body>
+<main>
+  <header>
+    <div class="kicker">CHAPTER 14 · CALIBRATION TRANSFER LAB</div>
+    <h1>主仪器模型能直接部署到从仪器吗？</h1>
+    <p class="subtitle">
+      你需要依次完成硬件校准判断、差异结构诊断、迁移方法选择和独立验证设计。
+      页面只在浏览器本地运行，不收集姓名或答案。
+    </p>
+  </header>
+
+  <div class="layout">
+    <section class="card" aria-label="实验控制面板">
+      <h2>你的决策</h2>
+      <fieldset>
+        <legend>0. 硬件与量值链</legend>
+        <label class="choice">
+          <input type="checkbox" id="hardware">
+          <span><strong>已完成波长、强度、分辨率与检测器响应校准</strong>
+          <small>如果没有先完成这一步，后续数学迁移不能替代量值溯源。</small></span>
+        </label>
+      </fieldset>
+
+      <fieldset>
+        <legend>1. 主从差异更像哪一种？</legend>
+        <label class="choice">
+          <input type="radio" name="difference" value="additive">
+          <span><strong>全局加性/乘性差异</strong><small>峰位相近，主要改变强度和截距。</small></span>
+        </label>
+        <label class="choice">
+          <input type="radio" name="difference" value="smooth" checked>
+          <span><strong>全局平滑谱响应差异</strong><small>不同波长有缓慢变化的增益。</small></span>
+        </label>
+        <label class="choice">
+          <input type="radio" name="difference" value="local">
+          <span><strong>局部峰形/波长依赖差异</strong><small>某个波段峰宽或峰高发生明显变化。</small></span>
+        </label>
+      </fieldset>
+
+      <fieldset>
+        <legend>2. 选择迁移方法</legend>
+        <label class="choice">
+          <input type="radio" name="method" value="direct">
+          <span><strong>直接套用主仪器模型</strong><small>不做任何校正。</small></span>
+        </label>
+        <label class="choice">
+          <input type="radio" name="method" value="slope">
+          <span><strong>斜率—偏差校正</strong><small>只修正输出尺度和截距。</small></span>
+        </label>
+        <label class="choice">
+          <input type="radio" name="method" value="ds" checked>
+          <span><strong>全局 DS</strong><small>学习一条全局光谱映射。</small></span>
+        </label>
+        <label class="choice">
+          <input type="radio" name="method" value="pds">
+          <span><strong>PDS</strong><small>在每个局部波长窗口学习映射。</small></span>
+        </label>
+      </fieldset>
+
+      <fieldset>
+        <legend>3. 用哪个集合报告最终误差？</legend>
+        <label class="choice">
+          <input type="radio" name="validation" value="transfer">
+          <span><strong>参与迁移函数拟合的传递样品</strong><small>这些样品已经用于估计 DS/PDS。</small></span>
+        </label>
+        <label class="choice">
+          <input type="radio" name="validation" value="independent" checked>
+          <span><strong>未参与训练与迁移的独立目标域样品</strong><small>更接近未来部署条件。</small></span>
+        </label>
+      </fieldset>
+
+      <div class="actions">
+        <button class="primary" id="assess">检查方案</button>
+        <button class="secondary" id="reset">重置</button>
+      </div>
+    </section>
+
+    <section class="card" aria-label="结果与反馈">
+      <h2>仪器响应与判断反馈</h2>
+      <canvas id="spectrum" width="920" height="420" aria-label="主仪器与从仪器光谱示意图"></canvas>
+      <div class="legend">
+        <span><i class="swatch" style="background:#77b7bd"></i>主仪器</span>
+        <span><i class="swatch" style="background:#e9a27c"></i>从仪器</span>
+      </div>
+      <div class="result" id="result" aria-live="polite">
+        <strong>等待判断</strong>
+        <p class="hint">完成四项选择后点击“检查方案”。</p>
+      </div>
+      <div class="ledger" id="ledger">
+        当前记录：尚未决定硬件状态、迁移方法和验证集。
+      </div>
+    </section>
+  </div>
+</main>
+
+<script>
+(() => {
+  const canvas = document.getElementById("spectrum");
+  const ctx = canvas.getContext("2d");
+  const result = document.getElementById("result");
+  const ledger = document.getElementById("ledger");
+
+  const expected = {
+    additive: { best: ["slope", "ds"], acceptable: ["ds", "slope", "pds"] },
+    smooth: { best: ["ds"], acceptable: ["ds", "pds"] },
+    local: { best: ["pds"], acceptable: ["pds", "ds"] }
+  };
+
+  const labels = {
+    additive: "全局加性/乘性差异",
+    smooth: "全局平滑谱响应差异",
+    local: "局部峰形/波长依赖差异",
+    direct: "直接套用",
+    slope: "斜率—偏差校正",
+    ds: "全局 DS",
+    pds: "PDS",
+    transfer: "传递样品",
+    independent: "独立目标域样品"
+  };
+
+  function selected(name) {
+    return document.querySelector(`input[name="${name}"]:checked`)?.value || "";
+  }
+
+  function gaussian(x, center, width, amplitude) {
+    return amplitude * Math.exp(-0.5 * ((x - center) / width) ** 2);
+  }
+
+  function drawSpectra(kind) {
+    const width = canvas.width, height = canvas.height;
+    ctx.clearRect(0, 0, width, height);
+    ctx.fillStyle = "#0f2234";
+    ctx.fillRect(0, 0, width, height);
+    ctx.strokeStyle = "rgba(255,255,255,.12)";
+    ctx.lineWidth = 1;
+    for (let i = 1; i < 5; i++) {
+      const y = 45 + i * (height - 90) / 5;
+      ctx.beginPath(); ctx.moveTo(50, y); ctx.lineTo(width - 28, y); ctx.stroke();
+    }
+    const master = [];
+    const slave = [];
+    for (let i = 0; i < 420; i++) {
+      const x = 1100 + i * (1300 / 419);
+      let m = gaussian(x, 1450, 65, 0.95) + gaussian(x, 1900, 95, 0.68) + gaussian(x, 2180, 120, 0.42);
+      let s = m * 1.1;
+      if (kind === "smooth") s *= 0.9 + 0.14 * Math.exp(-0.5 * ((x - 1950) / 420) ** 2);
+      if (kind === "local") {
+        s += gaussian(x, 1450, 105, 0.22) - gaussian(x, 1850, 52, 0.18);
+      }
+      master.push([x, m]);
+      slave.push([x, s]);
+    }
+    const minY = 0, maxY = Math.max(...master.map(p => p[1]), ...slave.map(p => p[1])) * 1.18;
+    const px = x => 52 + (x - 1100) / 1300 * (width - 78);
+    const py = y => height - 46 - (y - minY) / (maxY - minY) * (height - 86);
+    const line = (series, color) => {
+      ctx.beginPath();
+      series.forEach(([x, y], index) => {
+        const xx = px(x), yy = py(y);
+        if (index === 0) ctx.moveTo(xx, yy); else ctx.lineTo(xx, yy);
+      });
+      ctx.strokeStyle = color;
+      ctx.lineWidth = 2.7;
+      ctx.stroke();
+    };
+    line(master, "#77b7bd");
+    line(slave, "#e9a27c");
+    ctx.fillStyle = "rgba(255,255,255,.65)";
+    ctx.font = "16px Microsoft YaHei";
+    ctx.fillText("1100 nm", 52, height - 18);
+    ctx.fillText("2400 nm", width - 106, height - 18);
+  }
+
+  function assess() {
+    const hardware = document.getElementById("hardware").checked;
+    const difference = selected("difference");
+    const method = selected("method");
+    const validation = selected("validation");
+    const check = (pass, text) => `<div class="check"><b>${pass ? "✓" : "×"}</b><span>${text}</span></div>`;
+
+    const methodGood = expected[difference].best.includes(method);
+    const methodMaybe = expected[difference].acceptable.includes(method);
+    const validationGood = validation === "independent";
+    const passCount = Number(hardware) + Number(methodGood) + Number(validationGood);
+    const score = Math.round(passCount / 3 * 100);
+
+    result.className = `result ${score === 100 ? "good" : "warn"}`;
+    result.innerHTML = `
+      <div class="score">${score} / 100</div>
+      <strong>${score === 100 ? "方案可以进入验证" : "方案仍需修改"}</strong>
+      <div class="checks">
+        ${check(hardware, hardware ? "硬件与量值链已先处理。" : "数学迁移不能替代波长、强度和分辨率校准。")}
+        ${check(methodGood, methodGood ? `${labels[method]} 与“${labels[difference]}”的诊断一致。` : methodMaybe ? `${labels[method]} 可以工作，但不是该差异结构的首选。` : `${labels[method]} 不能直接解决当前差异结构。`)}
+        ${check(validationGood, validationGood ? "使用独立目标域样品评价，符合部署边界。" : "传递样品参与了迁移拟合，不能作为最终独立测试。")}
+      </div>
+    `;
+    ledger.textContent =
+      `当前记录：硬件=${hardware ? "已校准" : "未校准"}；差异=${labels[difference]}；` +
+      `方法=${labels[method]}；验证=${labels[validation]}。`;
+  }
+
+  function reset() {
+    document.getElementById("hardware").checked = false;
+    document.querySelector('input[name="difference"][value="smooth"]').checked = true;
+    document.querySelector('input[name="method"][value="ds"]').checked = true;
+    document.querySelector('input[name="validation"][value="independent"]').checked = true;
+    result.className = "result";
+    result.innerHTML = '<strong>等待判断</strong><p class="hint">完成四项选择后点击“检查方案”。</p>';
+    ledger.textContent = "当前记录：尚未决定硬件状态、迁移方法和验证集。";
+    drawSpectra("smooth");
+  }
+
+  document.querySelectorAll('input[name="difference"]').forEach(input => {
+    input.addEventListener("change", () => drawSpectra(input.value));
+  });
+  document.getElementById("assess").addEventListener("click", assess);
+  document.getElementById("reset").addEventListener("click", reset);
+  drawSpectra("smooth");
+})();
+</script>
+</body>
+</html>
+

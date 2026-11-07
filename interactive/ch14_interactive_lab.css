@@ -1,0 +1,46 @@
+.ch14-lab {
+  padding: 1rem;
+  border: 1px solid #d4dee5;
+  border-radius: 14px;
+  background: #f8fafb;
+}
+
+.ch14-lab fieldset {
+  border: 0;
+  padding: 0;
+  margin: .75rem 0;
+}
+
+.ch14-lab legend {
+  font-weight: 700;
+  margin-bottom: .4rem;
+}
+
+.ch14-lab label {
+  display: block;
+  margin: .35rem 0;
+}
+
+.ch14-lab button {
+  border: 0;
+  border-radius: 999px;
+  padding: .65rem 1rem;
+  background: #2f7f86;
+  color: #fff;
+  font-weight: 700;
+  cursor: pointer;
+}
+
+.ch14-lab .ch14-feedback {
+  margin-top: .75rem;
+  padding: .75rem;
+  border-radius: 10px;
+  background: #fff0e9;
+  color: #a5482d;
+}
+
+.ch14-lab .ch14-feedback[data-status="pass"] {
+  background: #e9f7f1;
+  color: #20755f;
+}
+
